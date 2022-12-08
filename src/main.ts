@@ -10,11 +10,11 @@ import * as glob from 'glob'
 type RepoAssetsResp =
   RestEndpointMethodTypes['repos']['listReleaseAssets']['response']['data']
 type ReleaseByTagResp =
-  RestEndpointMethodTypes['repos']['getReleaseByTag']['response']['data']
+  RestEndpointMethodTypes['repos']['getReleaseByTag']['response']
 type CreateReleaseResp =
-  RestEndpointMethodTypes['repos']['createRelease']['response']['data']
+  RestEndpointMethodTypes['repos']['createRelease']['response']
 type UploadAssetResp =
-  RestEndpointMethodTypes['repos']['uploadReleaseAsset']['response']['data']
+  RestEndpointMethodTypes['repos']['uploadReleaseAsset']['response']
 
 async function get_release_by_tag(
   tag: string,
@@ -25,7 +25,7 @@ async function get_release_by_tag(
 ): Promise<ReleaseByTagResp | CreateReleaseResp> {
   try {
     core.debug(`Getting release by tag ${tag}.`)
-    return await octokit.repos.getReleaseByTag({
+    return await octokit.rest.repos.getReleaseByTag({
       ...repo(),
       tag: tag
     })
@@ -37,7 +37,7 @@ async function get_release_by_tag(
       core.debug(
         `Release for tag ${tag} doesn't exist yet so we'll create it now.`
       )
-      return await octokit.repos.createRelease({
+      return await octokit.rest.repos.createRelease({
         ...repo(),
         tag_name: tag,
         prerelease: prerelease,
@@ -68,7 +68,7 @@ async function upload_to_release(
 
   // Check for duplicates.
   const assets: RepoAssetsResp = await octokit.paginate(
-    octokit.repos.listReleaseAssets,
+    octokit.rest.repos.listReleaseAssets,
     {
       ...repo(),
       release_id: release.data.id
@@ -80,7 +80,7 @@ async function upload_to_release(
       core.debug(
         `An asset called ${asset_name} already exists in release ${tag} so we'll overwrite it.`
       )
-      await octokit.repos.deleteReleaseAsset({
+      await octokit.rest.repos.deleteReleaseAsset({
         ...repo(),
         asset_id: duplicate_asset.id
       })
@@ -97,7 +97,7 @@ async function upload_to_release(
   core.debug(`Uploading ${file} to ${asset_name} in release ${tag}.`)
 
   const uploaded_asset: UploadAssetResp =
-    await octokit.repos.uploadReleaseAsset(
+    await octokit.rest.repos.uploadReleaseAsset(
       // eslint-disable-next-line @typescript-eslint/ban-ts-comment
       // @ts-ignore
       {

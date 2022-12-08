@@ -1436,7 +1436,7 @@ function get_release_by_tag(tag, prerelease, release_name, body, octokit) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
             core.debug(`Getting release by tag ${tag}.`);
-            return yield octokit.repos.getReleaseByTag(Object.assign(Object.assign({}, repo()), { tag: tag }));
+            return yield octokit.rest.repos.getReleaseByTag(Object.assign(Object.assign({}, repo()), { tag: tag }));
         }
         catch (error) {
             // If this returns 404, we need to create the release first.
@@ -1444,7 +1444,7 @@ function get_release_by_tag(tag, prerelease, release_name, body, octokit) {
             // @ts-ignore
             if (error.status === 404) {
                 core.debug(`Release for tag ${tag} doesn't exist yet so we'll create it now.`);
-                return yield octokit.repos.createRelease(Object.assign(Object.assign({}, repo()), { tag_name: tag, prerelease: prerelease, name: release_name, body: body }));
+                return yield octokit.rest.repos.createRelease(Object.assign(Object.assign({}, repo()), { tag_name: tag, prerelease: prerelease, name: release_name, body: body }));
             }
             else {
                 throw error;
@@ -1462,12 +1462,12 @@ function upload_to_release(release, file, asset_name, tag, overwrite, octokit) {
         const file_size = stat.size;
         const file_bytes = fs.readFileSync(file);
         // Check for duplicates.
-        const assets = yield octokit.paginate(octokit.repos.listReleaseAssets, Object.assign(Object.assign({}, repo()), { release_id: release.data.id }));
+        const assets = yield octokit.paginate(octokit.rest.repos.listReleaseAssets, Object.assign(Object.assign({}, repo()), { release_id: release.data.id }));
         const duplicate_asset = assets.find(a => a.name === asset_name);
         if (duplicate_asset !== undefined) {
             if (overwrite) {
                 core.debug(`An asset called ${asset_name} already exists in release ${tag} so we'll overwrite it.`);
-                yield octokit.repos.deleteReleaseAsset(Object.assign(Object.assign({}, repo()), { asset_id: duplicate_asset.id }));
+                yield octokit.rest.repos.deleteReleaseAsset(Object.assign(Object.assign({}, repo()), { asset_id: duplicate_asset.id }));
             }
             else {
                 core.setFailed(`An asset called ${asset_name} already exists.`);
@@ -1478,7 +1478,7 @@ function upload_to_release(release, file, asset_name, tag, overwrite, octokit) {
             core.debug(`No pre-existing asset called ${asset_name} found in release ${tag}. All good.`);
         }
         core.debug(`Uploading ${file} to ${asset_name} in release ${tag}.`);
-        const uploaded_asset = yield octokit.repos.uploadReleaseAsset(
+        const uploaded_asset = yield octokit.rest.repos.uploadReleaseAsset(
         // eslint-disable-next-line @typescript-eslint/ban-ts-comment
         // @ts-ignore
         {
