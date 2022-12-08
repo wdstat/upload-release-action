@@ -1,15 +1,20 @@
 import * as fs from 'fs'
-import {Octokit} from '@octokit/core'
-import {Endpoints} from '@octokit/types'
+import {Octokit} from '@octokit/rest'
+import {Octokit as CoreOctokit} from '@octokit/core'
+import {RestEndpointMethodTypes} from '@octokit/rest'
 import * as core from '@actions/core'
 import * as github from '@actions/github'
 import * as path from 'path'
 import * as glob from 'glob'
 
-type RepoAssetsResp = Endpoints['GET /repos/:owner/:repo/releases/:release_id/assets']['response']['data']
-type ReleaseByTagResp = Endpoints['GET /repos/:owner/:repo/releases/tags/:tag']['response']
-type CreateReleaseResp = Endpoints['POST /repos/:owner/:repo/releases']['response']
-type UploadAssetResp = Endpoints['POST /repos/:owner/:repo/releases/:release_id/assets{?name,label}']['response']
+type RepoAssetsResp =
+  RestEndpointMethodTypes['repos']['listReleaseAssets']['response']['data']
+type ReleaseByTagResp =
+  RestEndpointMethodTypes['repos']['getReleaseByTag']['response']
+type CreateReleaseResp =
+  RestEndpointMethodTypes['repos']['createRelease']['response']
+type UploadAssetResp =
+  RestEndpointMethodTypes['repos']['uploadReleaseAsset']['response']
 
 async function get_release_by_tag(
   tag: string,
@@ -26,6 +31,8 @@ async function get_release_by_tag(
     })
   } catch (error) {
     // If this returns 404, we need to create the release first.
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-ignore
     if (error.status === 404) {
       core.debug(
         `Release for tag ${tag} doesn't exist yet so we'll create it now.`
@@ -88,17 +95,21 @@ async function upload_to_release(
   }
 
   core.debug(`Uploading ${file} to ${asset_name} in release ${tag}.`)
-  const uploaded_asset: UploadAssetResp = await octokit.repos.uploadReleaseAsset(
-    {
-      url: release.data.upload_url,
-      name: asset_name,
-      data: file_bytes,
-      headers: {
-        'content-type': 'binary/octet-stream',
-        'content-length': file_size
+
+  const uploaded_asset: UploadAssetResp =
+    await octokit.repos.uploadReleaseAsset(
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      // @ts-ignore
+      {
+        url: release.data.upload_url,
+        name: asset_name,
+        data: file_bytes as unknown as string,
+        headers: {
+          'content-type': 'binary/octet-stream',
+          'content-length': file_size
+        }
       }
-    }
-  )
+    )
   return uploaded_asset.data.browser_download_url
 }
 
@@ -108,11 +119,12 @@ function repo(): {owner: string; repo: string} {
   if (!repo_name) {
     return github.context.repo
   }
-  const owner = repo_name.substr(0, repo_name.indexOf('/'))
+  const owner = repo_name.substring(0, repo_name.indexOf('/'))
   if (!owner) {
     throw new Error(`Could not extract 'owner' from 'repo_name': ${repo_name}.`)
   }
-  const repo = repo_name.substr(repo_name.indexOf('/') + 1)
+  // eslint-disable-next-line @typescript-eslint/no-shadow
+  const repo = repo_name.substring(repo_name.indexOf('/') + 1)
   if (!repo) {
     throw new Error(`Could not extract 'repo' from 'repo_name': ${repo_name}.`)
   }
@@ -138,27 +150,27 @@ async function run(): Promise<void> {
     const release_name = core.getInput('release_name')
     const body = core.getInput('body')
 
-    const octokit: Octokit = github.getOctokit(token)
+    const octokit: CoreOctokit = github.getOctokit(token)
     const release = await get_release_by_tag(
       tag,
       prerelease,
       release_name,
       body,
-      octokit
+      octokit as Octokit
     )
 
     if (file_glob) {
       const files = glob.sync(file)
       if (files.length > 0) {
-        for (const file of files) {
-          const asset_name = path.basename(file)
+        for (const theFile of files) {
+          const asset_name = path.basename(theFile)
           const asset_download_url = await upload_to_release(
             release,
-            file,
+            theFile,
             asset_name,
             tag,
             overwrite,
-            octokit
+            octokit as Octokit
           )
           core.setOutput('browser_download_url', asset_download_url)
         }
@@ -176,12 +188,12 @@ async function run(): Promise<void> {
         asset_name,
         tag,
         overwrite,
-        octokit
+        octokit as Octokit
       )
       core.setOutput('browser_download_url', asset_download_url)
     }
   } catch (error) {
-    core.setFailed(error.message)
+    core.setFailed((error as Error).message)
   }
 }
 
