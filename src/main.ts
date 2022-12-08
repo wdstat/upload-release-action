@@ -10,11 +10,11 @@ import * as glob from 'glob'
 type RepoAssetsResp =
   RestEndpointMethodTypes['repos']['listReleaseAssets']['response']['data']
 type ReleaseByTagResp =
-  RestEndpointMethodTypes['repos']['getReleaseByTag']['response']
+  RestEndpointMethodTypes['repos']['getReleaseByTag']['response']['data']
 type CreateReleaseResp =
-  RestEndpointMethodTypes['repos']['createRelease']['response']
+  RestEndpointMethodTypes['repos']['createRelease']['response']['data']
 type UploadAssetResp =
-  RestEndpointMethodTypes['repos']['uploadReleaseAsset']['response']
+  RestEndpointMethodTypes['repos']['uploadReleaseAsset']['response']['data']
 
 async function get_release_by_tag(
   tag: string,
